@@ -1,4 +1,3 @@
-cat > Jenkinsfile << 'EOF'
 pipeline {
     agent any
 
@@ -14,7 +13,7 @@ pipeline {
     stages {
         stage('Checkout') {
             steps {
-                checkout scm   // 從 GitHub 取最新原始碼（Jenkins Job 會指定 repo）
+                checkout scm // 從 GitHub 取最新原始碼（Jenkins Job 會指定 repo）
             }
         }
         stage('Setup Python env') {
@@ -60,4 +59,3 @@ pipeline {
         }
     }
 }
-EOF
