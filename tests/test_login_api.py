@@ -1,9 +1,9 @@
 import requests
 
 def test_login_api():
-    # 使用 ReqRes 提供的公開登入 API
-    url = "https://reqres.in/api/login"
-    payload = {"email": "eve.holt@reqres.in", "password": "cityslicka"}
+    # 使用 ReqRes 提供的註冊 API，會回傳 token
+    url = "https://reqres.in/api/register"
+    payload = {"email": "eve.holt@reqres.in", "password": "pistol"}
     
     response = requests.post(url, json=payload)
 
@@ -14,3 +14,4 @@ def test_login_api():
     assert response.status_code == 200
     # 驗證回傳是否包含 token
     assert "token" in response.json()
+
