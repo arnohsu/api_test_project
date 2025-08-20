@@ -18,7 +18,7 @@ pipeline {
             steps {
                 sh '''
                 python3 -m venv ${PY_ENV}
-                source ${PY_ENV}/bin/activate
+                . ${PY_ENV}/bin/activate
                 echo "pytest" > requirements.txt
                 echo "requests" >> requirements.txt
                 echo "pytest-html" >> requirements.txt
@@ -30,7 +30,7 @@ pipeline {
         stage('Run pytest & report') {
             steps {
                 sh '''
-                source ${PY_ENV}/bin/activate
+                . ${PY_ENV}/bin/activate
                 mkdir -p ${REPORT_DIR}
                 pytest tests/ --html=${REPORT_FILE} --self-contained-html
                 '''
@@ -45,7 +45,7 @@ pipeline {
             steps {
                 withCredentials([usernamePassword(credentialsId: 'SMTP_CRED', usernameVariable: 'SMTP_USER', passwordVariable: 'SMTP_PASS')]) {
                     sh '''
-                    source ${PY_ENV}/bin/activate
+                    . ${PY_ENV}/bin/activate
                     export SMTP_HOST=${SMTP_HOST}
                     export SMTP_PORT=${SMTP_PORT}
                     export TO_EMAIL=${TO_EMAIL}
