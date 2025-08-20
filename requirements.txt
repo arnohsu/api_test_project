@@ -1,0 +1,5 @@
+cat > requirements.txt << 'EOF'
+pytest
+requests
+pytest-html
+EOF
