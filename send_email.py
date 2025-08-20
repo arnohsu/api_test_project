@@ -1,30 +1,33 @@
-import os
 import smtplib
-from email.mime.text import MIMEText
+import ssl
 from email.mime.multipart import MIMEMultipart
-from email.mime.application import MIMEApplication
+from email.mime.text import MIMEText
 
-smtp_host = os.environ.get("SMTP_HOST")
-smtp_port = int(os.environ.get("SMTP_PORT", "465"))
-smtp_user = os.environ.get("SMTP_USER")
-smtp_pass = os.environ.get("SMTP_PASS")
-to_email = os.environ.get("TO_EMAIL")
-report_file = os.environ.get("REPORT_FILE", "reports/report.html")
+import os
 
-msg = MIMEMultipart()
+smtp_host = os.environ["SMTP_HOST"]
+smtp_port = int(os.environ["SMTP_PORT"])
+smtp_user = os.environ["SMTP_USER"]
+smtp_pass = os.environ["SMTP_PASS"]
+to_email = os.environ["TO_EMAIL"]
+report_file = os.environ["REPORT_FILE"]
+
+# 建立安全的 SSL context
+context = ssl.create_default_context()
+
+# 建立郵件內容
+msg = MIMEMultipart("alternative")
+msg["Subject"] = "API Test Report"
 msg["From"] = smtp_user
 msg["To"] = to_email
-msg["Subject"] = "Jenkins Test Report"
 
-msg.attach(MIMEText("您好，以下是 Jenkins 測試報告。\n\nBest Regards,\nCI/CD 系統", "plain", "utf-8"))
+# 讀取測試報告
+with open(report_file, "r", encoding="utf-8") as f:
+    report_html = f.read()
 
-with open(report_file, "rb") as f:
-    attach = MIMEApplication(f.read(), _subtype="html")
-    attach.add_header("Content-Disposition", "attachment", filename="report.html")
-    msg.attach(attach)
+msg.attach(MIMEText(report_html, "html"))
 
-context = smtplib.create_default_context()
+# 寄信
 with smtplib.SMTP_SSL(smtp_host, smtp_port, context=context) as server:
     server.login(smtp_user, smtp_pass)
     server.sendmail(smtp_user, to_email, msg.as_string())
-    print("Email sent successfully to", to_email)
