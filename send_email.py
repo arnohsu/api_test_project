@@ -1,24 +1,29 @@
 import smtplib
-import os
+import sys
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from email.mime.application import MIMEApplication
+import os
 
-# 從 Jenkins 傳入的環境變數
-smtp_server = "smtp.gmail.com"
-smtp_port = 587
-sender = os.getenv("EMAIL_USER")
-password = os.getenv("EMAIL_PASS")
-receiver = os.getenv("EMAIL_RECEIVER", sender)  # 沒指定就寄回自己
+# 讀取 Jenkins 傳入的參數
+subject = sys.argv[1] if len(sys.argv) > 1 else "Jenkins 測試報告"
+body = sys.argv[2] if len(sys.argv) > 2 else "您好，這是 Jenkins 自動化測試的結果，請查看附件報告。"
+sender = sys.argv[3] if len(sys.argv) > 3 else None
+password = sys.argv[4] if len(sys.argv) > 4 else None
+receiver = sender  # 可以改成固定收件人或從參數傳入
 
-# 郵件標題與內容
+if not sender or not password:
+    print("❌ 發送失敗：缺少郵件帳號或密碼")
+    sys.exit(1)
+
+# 建立郵件
 msg = MIMEMultipart()
 msg["From"] = sender
 msg["To"] = receiver
-msg["Subject"] = "Jenkins 測試報告"
-msg.attach(MIMEText("您好，這是 Jenkins 自動化測試的結果，請查看附件報告。", "plain"))
+msg["Subject"] = subject
+msg.attach(MIMEText(body, "plain"))
 
-# 附加 HTML 報告
+# 附件
 report_path = "reports/report.html"
 if os.path.exists(report_path):
     with open(report_path, "rb") as f:
@@ -26,10 +31,11 @@ if os.path.exists(report_path):
     attachment['Content-Disposition'] = 'attachment; filename="report.html"'
     msg.attach(attachment)
 
+# 寄送
 try:
-    server = smtplib.SMTP(smtp_server, smtp_port)
+    server = smtplib.SMTP("smtp.gmail.com", 587)
     server.starttls()
-    server.login(sender, password)  # 用 Jenkins credentials
+    server.login(sender, password)
     server.sendmail(sender, receiver, msg.as_string())
     print("✅ 郵件寄送成功")
     server.quit()
