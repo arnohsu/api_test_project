@@ -2,33 +2,33 @@ pipeline {
     agent any
 
     environment {
-        VENV = "venv"
+        EMAIL_RECEIVER = '收件者@gmail.com'
     }
 
     stages {
         stage('Checkout') {
             steps {
-                git branch: 'main', url: 'https://github.com/arnohsu/api_test_project.git'
+                git branch: 'main',
+                    url: 'https://github.com/arnohsu/api_test_project.git'
             }
         }
 
         stage('Setup Environment') {
             steps {
-                sh '''#!/bin/bash
-                python3 -m venv $VENV
-                source $VENV/bin/activate
-                pip install --upgrade pip
-                pip install -r requirements.txt
+                sh '''
+                    python3 -m venv venv
+                    source venv/bin/activate
+                    pip install --upgrade pip
+                    pip install -r requirements.txt
                 '''
             }
         }
 
         stage('Run Tests') {
             steps {
-                sh '''#!/bin/bash
-                source $VENV/bin/activate
-                mkdir -p reports
-                pytest --junitxml=reports/results.xml --html=reports/report.html --self-contained-html
+                sh '''
+                    source venv/bin/activate
+                    pytest tests/ --junitxml=reports/results.xml --html=reports/report.html --self-contained-html
                 '''
             }
         }
@@ -42,6 +42,9 @@ pipeline {
         stage('Publish HTML Report') {
             steps {
                 publishHTML(target: [
+                    allowMissing: false,
+                    alwaysLinkToLastBuild: true,
+                    keepAll: true,
                     reportDir: 'reports',
                     reportFiles: 'report.html',
                     reportName: 'API 測試報告'
@@ -52,10 +55,16 @@ pipeline {
 
     post {
         always {
-            sh '''#!/bin/bash
-            source $VENV/bin/activate
-            python send_email.py
-            '''
+            withCredentials([usernamePassword(
+                credentialsId: 'my-smtp-cred',
+                usernameVariable: 'EMAIL_USER',
+                passwordVariable: 'EMAIL_PASS'
+            )]) {
+                sh '''
+                    source venv/bin/activate
+                    python send_email.py
+                '''
+            }
         }
     }
 }
