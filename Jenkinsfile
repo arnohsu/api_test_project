@@ -1,59 +1,61 @@
 pipeline {
     agent any
+
     environment {
-        PY_ENV = "venv"
-        REPORT_DIR = "reports"
-        REPORT_FILE = "reports/report.html"
-        SMTP_HOST = "smtp.gmail.com"
-        SMTP_PORT = "465"
-        TO_EMAIL = "example@example.com" // 替換為你的收件人郵件地址
+        VENV = "venv"
     }
+
     stages {
         stage('Checkout') {
             steps {
-                checkout scm
+                git branch: 'main', url: 'https://github.com/arnohsu/api_test_project.git'
             }
         }
-        stage('Setup Python env') {
+
+        stage('Setup Environment') {
             steps {
-                sh '''
-                python3 -m venv ${PY_ENV}
-                . ${PY_ENV}/bin/activate
-                echo "pytest" > requirements.txt
-                echo "requests" >> requirements.txt
-                echo "pytest-html" >> requirements.txt
+                sh '''#!/bin/bash
+                python3 -m venv $VENV
+                source $VENV/bin/activate
                 pip install --upgrade pip
                 pip install -r requirements.txt
                 '''
             }
         }
-        stage('Run pytest & report') {
+
+        stage('Run Tests') {
             steps {
-                sh '''
-                . ${PY_ENV}/bin/activate
-                mkdir -p ${REPORT_DIR}
-                pytest tests/ --html=${REPORT_FILE} --self-contained-html
+                sh '''#!/bin/bash
+                source $VENV/bin/activate
+                mkdir -p reports
+                pytest --junitxml=reports/results.xml --html=reports/report.html --self-contained-html
                 '''
             }
         }
-        stage('Archive report') {
+
+        stage('Collect Results') {
             steps {
-                archiveArtifacts artifacts: "${REPORT_FILE}", fingerprint: true
+                junit 'reports/results.xml'
             }
         }
-        stage('Send email') {
+
+        stage('Publish HTML Report') {
             steps {
-                withCredentials([usernamePassword(credentialsId: 'SMTP_CRED', usernameVariable: 'SMTP_USER', passwordVariable: 'SMTP_PASS')]) {
-                    sh '''
-                    . ${PY_ENV}/bin/activate
-                    export SMTP_HOST=${SMTP_HOST}
-                    export SMTP_PORT=${SMTP_PORT}
-                    export TO_EMAIL=${TO_EMAIL}
-                    export REPORT_FILE=${REPORT_FILE}
-                    python3 send_email.py
-                    '''
-                }
+                publishHTML(target: [
+                    reportDir: 'reports',
+                    reportFiles: 'report.html',
+                    reportName: 'API 測試報告'
+                ])
             }
+        }
+    }
+
+    post {
+        always {
+            sh '''#!/bin/bash
+            source $VENV/bin/activate
+            python send_email.py
+            '''
         }
     }
 }
