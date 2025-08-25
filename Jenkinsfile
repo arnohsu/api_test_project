@@ -2,14 +2,13 @@ pipeline {
     agent any
 
     environment {
-        EMAIL_RECEIVER = '收件者@gmail.com'
+        REPORT_DIR = "reports"
     }
 
     stages {
         stage('Checkout') {
             steps {
-                git branch: 'main',
-                    url: 'https://github.com/arnohsu/api_test_project.git'
+                git branch: 'main', url: 'https://github.com/arnohsu/api_test_project.git'
             }
         }
 
@@ -17,7 +16,7 @@ pipeline {
             steps {
                 sh '''
                     python3 -m venv venv
-                    source venv/bin/activate
+                    . venv/bin/activate
                     pip install --upgrade pip
                     pip install -r requirements.txt
                 '''
@@ -27,15 +26,15 @@ pipeline {
         stage('Run Tests') {
             steps {
                 sh '''
-                    source venv/bin/activate
-                    pytest tests/ --junitxml=reports/results.xml --html=reports/report.html --self-contained-html
+                    . venv/bin/activate
+                    pytest tests/ --junitxml=${REPORT_DIR}/results.xml --html=${REPORT_DIR}/report.html --self-contained-html
                 '''
             }
         }
 
         stage('Collect Results') {
             steps {
-                junit 'reports/results.xml'
+                junit "${REPORT_DIR}/results.xml"
             }
         }
 
@@ -43,9 +42,8 @@ pipeline {
             steps {
                 publishHTML(target: [
                     allowMissing: false,
-                    alwaysLinkToLastBuild: true,
                     keepAll: true,
-                    reportDir: 'reports',
+                    reportDir: "${REPORT_DIR}",
                     reportFiles: 'report.html',
                     reportName: 'API 測試報告'
                 ])
@@ -54,15 +52,19 @@ pipeline {
     }
 
     post {
-        always {
-            withCredentials([usernamePassword(
-                credentialsId: 'my-smtp-cred',
-                usernameVariable: 'EMAIL_USER',
-                passwordVariable: 'EMAIL_PASS'
-            )]) {
+        success {
+            withCredentials([usernamePassword(credentialsId: 'gmail-credentials', usernameVariable: 'SMTP_USER', passwordVariable: 'SMTP_PASS')]) {
                 sh '''
-                    source venv/bin/activate
-                    python send_email.py
+                    . venv/bin/activate
+                    python send_email.py "API 自動化測試成功 ✅" "測試狀態：全部通過 🎉\\n詳細報告請參考附件。" "${SMTP_USER}" "${SMTP_PASS}"
+                '''
+            }
+        }
+        failure {
+            withCredentials([usernamePassword(credentialsId: 'gmail-credentials', usernameVariable: 'SMTP_USER', passwordVariable: 'SMTP_PASS')]) {
+                sh '''
+                    . venv/bin/activate
+                    python send_email.py "API 自動化測試失敗 ❌" "測試失敗，請盡快檢查 Jenkins 中的測試結果！" "${SMTP_USER}" "${SMTP_PASS}"
                 '''
             }
         }
