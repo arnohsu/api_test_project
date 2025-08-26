@@ -56,8 +56,7 @@ pipeline {
             withCredentials([usernamePassword(credentialsId: 'gmail-credentials', usernameVariable: 'SMTP_USER', passwordVariable: 'SMTP_PASS')]) {
                 sh '''
                     . venv/bin/activate
-                    python send_email.py "API 自動化測試成功 ✅" $'測試狀態：全部通過 🎉\n詳細報告請參考附件。' "${SMTP_USER}" "${SMTP_PASS}" "C107178157@nkust.edu.tw"
-
+                    python send_email.py "API 自動化測試成功 ✅" "測試狀態：全部通過 🎉\\n詳細報告請參考附件。" "${SMTP_USER}" "${SMTP_PASS}" "C107178157@nkust.edu.tw"
                 '''
             }
         }
@@ -65,7 +64,7 @@ pipeline {
             withCredentials([usernamePassword(credentialsId: 'gmail-credentials', usernameVariable: 'SMTP_USER', passwordVariable: 'SMTP_PASS')]) {
                 sh '''
                     . venv/bin/activate
-                    python send_email.py "API 自動化測試失敗 ❌" "測試失敗，請盡快檢查 Jenkins 中的測試結果！" "${SMTP_USER}" "${SMTP_PASS}"
+                    python send_email.py "API 自動化測試失敗 ❌" "測試失敗，請盡快檢查 Jenkins 中的測試結果！" "${SMTP_USER}" "${SMTP_PASS}" "C107178157@nkust.edu.tw"
                 '''
             }
         }
